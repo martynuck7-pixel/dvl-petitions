@@ -27,9 +27,15 @@
             --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
             --shadow-md: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
             
+            /* Зелений стиль для Популярних (7+) */
             --success-border: #10b981;
             --success-bg: #f0fdf4;
             --success-text: #047857;
+
+            /* Помаранчевий/Синій стиль для На розгляді (10+) */
+            --review-border: #f59e0b;
+            --review-bg: #fffbeb;
+            --review-text: #b45309;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
@@ -97,15 +103,24 @@
             transition: all 0.2s ease;
         }
 
-        .card.card-success {
+        /* Зелене виділення для популярних (7-9 голосів) */
+        .card.card-popular {
             border: 2px solid var(--success-border);
             background: var(--success-bg);
             box-shadow: 0 4px 15px rgba(16, 185, 129, 0.12);
         }
 
+        /* Стиль для петицій На розгляді (10+ голосів) */
+        .card.card-review {
+            border: 2px solid var(--review-border);
+            background: var(--review-bg);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
+        }
+
         .card-main { display: flex; gap: 20px; }
         .vote-box { display: flex; flex-direction: column; align-items: center; background: #f8fafc; padding: 12px; border-radius: 10px; width: 90px; height: fit-content; border: 1px solid var(--border); }
-        .card-success .vote-box { background: #fff; border-color: #a7f3d0; }
+        .card-popular .vote-box { background: #fff; border-color: #a7f3d0; }
+        .card-review .vote-box { background: #fff; border-color: #fde68a; }
         .vote-count { font-size: 18px; font-weight: 800; margin: 4px 0; }
         .vote-btn { background: var(--primary); color: #fff; border: none; padding: 6px; width: 100%; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; }
         .vote-btn.voted { background: #10b981; }
@@ -116,12 +131,13 @@
         
         .status-tag { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
         .status-collecting { background: #e2e8f0; color: #475569; }
-        .status-review { background: #d1fae5; color: var(--success-text); border: 1px solid #a7f3d0; }
+        .status-popular { background: #d1fae5; color: var(--success-text); border: 1px solid #a7f3d0; }
+        .status-review { background: #fef3c7; color: var(--review-text); border: 1px solid #fde68a; }
 
         .review-banner {
-            background: #eff6ff;
-            border: 1px dashed var(--primary);
-            color: #1e40af;
+            background: #fef3c7;
+            border: 1px dashed var(--review-border);
+            color: var(--review-text);
             padding: 10px 14px;
             border-radius: 8px;
             font-size: 13px;
@@ -251,9 +267,9 @@
             <button class="btn-create" id="openModalBtn"><i class="fa-solid fa-plus"></i> Створити петицію</button>
             <ul class="nav-menu">
                 <li class="active"><a href="#" data-tab="all"><i class="fa-solid fa-house"></i> Головна</a></li>
-                <li><a href="#" data-tab="popular"><i class="fa-solid fa-fire"></i> Популярні</a></li>
+                <li><a href="#" data-tab="popular"><i class="fa-solid fa-fire"></i> Популярні (7+)</a></li>
                 <li><a href="#" data-tab="new"><i class="fa-regular fa-sun"></i> Нові</a></li>
-                <li><a href="#" data-tab="review"><i class="fa-regular fa-clock"></i> На розгляді (7+)</a></li>
+                <li><a href="#" data-tab="review"><i class="fa-regular fa-clock"></i> На розгляді (10+)</a></li>
             </ul>
 
             <div class="menu-title">ПЕТИЦІЇ ПО ТЕМАМ</div>
@@ -268,7 +284,7 @@
         <main class="content">
             <div class="banner">
                 <h2>Запропонуй. Підтримай. Зміни.</h2>
-                <p>Петиція, яка набирає <strong>7 голосів</strong>, автоматично вирушає <strong>На розгляд</strong> адміністрації DVL.</p>
+                <p>Петиція, яка набирає <strong>10 або більше голосів</strong>, автоматично вирушає <strong>На розгляд</strong> адміністрації DVL.</p>
                 <div class="stats-grid">
                     <div class="stat-item"><div class="stat-val" id="totalCount">0</div><div class="stat-lbl">Всього петицій</div></div>
                     <div class="stat-item"><div class="stat-val" id="votesToday">0</div><div class="stat-lbl">Голосів зафіксовано</div></div>
@@ -482,12 +498,14 @@
             let tabFiltered = [...petitions];
 
             if (currentTab === 'popular') {
+                // Популярні: від 7 до 9 голосів
                 tabFiltered = tabFiltered.filter(p => {
                     const count = p.voters?.length || 0;
-                    return count >= 4 && count < 7;
+                    return count >= 7 && count < 10;
                 });
             } else if (currentTab === 'review') {
-                tabFiltered = tabFiltered.filter(p => (p.voters?.length || 0) >= 7);
+                // На розгляді: 10 та більше голосів
+                tabFiltered = tabFiltered.filter(p => (p.voters?.length || 0) >= 10);
             } else if (currentTab === 'new') {
                 tabFiltered = tabFiltered.slice(0, 2);
             } else if (currentTab === 'category') {
@@ -516,10 +534,25 @@
                     const votesCount = votesArray.length;
                     const viewsCount = p.views || 0;
                     const hasVoted = currentUser && votesArray.includes(currentUser.contact);
-                    const isOnReview = votesCount >= 7;
                     
-                    const statusClass = isOnReview ? 'status-review' : 'status-collecting';
-                    const statusText = isOnReview ? 'На розгляді' : `Збір голосів (${votesCount}/7)`;
+                    // Пороги статусу
+                    const isPopular = votesCount >= 7 && votesCount < 10;
+                    const isOnReview = votesCount >= 10;
+                    
+                    let cardClass = '';
+                    let statusClass = 'status-collecting';
+                    let statusText = `Збір голосів (${votesCount}/10)`;
+
+                    if (isOnReview) {
+                        cardClass = 'card-review';
+                        statusClass = 'status-review';
+                        statusText = 'На розгляді';
+                    } else if (isPopular) {
+                        cardClass = 'card-popular';
+                        statusClass = 'status-popular';
+                        statusText = 'Популярна';
+                    }
+
                     const commentsArray = p.comments || [];
                     const filesArray = p.files || [];
 
@@ -553,13 +586,13 @@
                     }
 
                     const card = document.createElement('div');
-                    card.className = `card ${isOnReview ? 'card-success' : ''}`;
+                    card.className = `card ${cardClass}`;
                     
                     card.innerHTML = `
                         ${isOnReview ? `
                             <div class="review-banner">
                                 <i class="fa-solid fa-bullhorn" style="font-size: 16px;"></i>
-                                Петиція набрала необхідну кількість голосів, просимо розглянути.
+                                Петиція набрала необхідну кількість голосів (10+), просимо розглянути.
                             </div>
                         ` : ''}
 
