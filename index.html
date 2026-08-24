@@ -6,7 +6,7 @@
     <title>DVL Петиції</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Підключення Firebase SDK -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
@@ -240,7 +240,6 @@
     </div>
 
     <script>
-        // ВАШІ КЛЮЧІ FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyD-JEsLU4oRUyY_5K5ywFYZ0Vejy4ZolCc",
             authDomain: "dvl-petitions.firebaseapp.com",
@@ -266,7 +265,7 @@
         const petitionForm = document.getElementById('petitionForm');
         const searchInput = document.getElementById('searchInput');
 
-        // Синхронізація з кастомною Базою Даних у режимі реального часу
+        // Синхронізація з Firebase
         db.collection("petitions").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
             petitions = [];
             snapshot.forEach((doc) => {
@@ -318,17 +317,23 @@
 
         function renderPetitions(filterText = '') {
             petitionList.innerHTML = '';
+            const query = filterText.trim().toLowerCase();
 
-            const filtered = petitions.filter(p => 
-                p.title.toLowerCase().includes(filterText.toLowerCase()) || 
-                p.text.toLowerCase().includes(filterText.toLowerCase())
-            );
+            // Покращена фільтрація по назві, опису, автору та категорії
+            const filtered = petitions.filter(p => {
+                const title = (p.title || '').toLowerCase();
+                const text = (p.text || '').toLowerCase();
+                const author = (p.author || '').toLowerCase();
+                const category = (p.category || '').toLowerCase();
+
+                return title.includes(query) || text.includes(query) || author.includes(query) || category.includes(query);
+            });
 
             if (filtered.length === 0) {
                 petitionList.innerHTML = `
                     <div class="empty-state">
                         <i class="fa-regular fa-folder-open" style="font-size: 36px; margin-bottom: 12px; opacity: 0.4;"></i>
-                        <p>Петицій поки немає. Авторизуйтесь та опублікуйте першу!</p>
+                        <p>${query ? 'Нічого не знайдено за вашим запитом.' : 'Петицій поки немає. Авторизуйтесь та опублікуйте першу!'}</p>
                     </div>
                 `;
             } else {
@@ -518,9 +523,10 @@
             closeModal();
         };
 
-        searchInput.oninput = function(e) {
+        // Жива прив'язка пошуку
+        searchInput.addEventListener('input', function(e) {
             renderPetitions(e.target.value);
-        };
+        });
 
         function escapeHtml(text) {
             return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
