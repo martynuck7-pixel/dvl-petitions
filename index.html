@@ -250,18 +250,18 @@
         <aside class="sidebar-left">
             <button class="btn-create" id="openModalBtn"><i class="fa-solid fa-plus"></i> Створити петицію</button>
             <ul class="nav-menu">
-                <li class="active"><a href="#"><i class="fa-solid fa-house"></i> Головна</a></li>
-                <li><a href="#"><i class="fa-solid fa-fire"></i> Популярні</a></li>
-                <li><a href="#"><i class="fa-regular fa-sun"></i> Нові</a></li>
-                <li><a href="#"><i class="fa-regular fa-clock"></i> На розгляді (7+)</a></li>
+                <li class="active"><a href="#" data-tab="all"><i class="fa-solid fa-house"></i> Головна</a></li>
+                <li><a href="#" data-tab="popular"><i class="fa-solid fa-fire"></i> Популярні</a></li>
+                <li><a href="#" data-tab="new"><i class="fa-regular fa-sun"></i> Нові</a></li>
+                <li><a href="#" data-tab="review"><i class="fa-regular fa-clock"></i> На розгляді (7+)</a></li>
             </ul>
 
             <div class="menu-title">ПЕТИЦІЇ ПО ТЕМАМ</div>
             <ul class="nav-menu">
-                <li><a href="#">Продажі</a></li>
-                <li><a href="#">Технічні</a></li>
-                <li><a href="#">Обслуговування</a></li>
-                <li><a href="#">Інше</a></li>
+                <li><a href="#" data-category="Продажі"><i class="fa-solid fa-tag"></i> Продажі</a></li>
+                <li><a href="#" data-category="Технічні"><i class="fa-solid fa-tag"></i> Технічні</a></li>
+                <li><a href="#" data-category="Обслуговування"><i class="fa-solid fa-tag"></i> Обслуговування</a></li>
+                <li><a href="#" data-category="Інше"><i class="fa-solid fa-tag"></i> Інше</a></li>
             </ul>
         </aside>
 
@@ -367,7 +367,6 @@
         let selectedCategory = '';
         const TEXT_LIMIT = 200;
 
-        // Зберігаємо відкриті петиції у поточній сесії, щоб не збільшувати лічильник при повторних кліках
         const viewedPetitions = new Set();
 
         const authContainer = document.getElementById('authContainer');
@@ -380,28 +379,21 @@
         const searchInput = document.getElementById('searchInput');
 
         document.addEventListener('DOMContentLoaded', () => {
-            const menuItems = document.querySelectorAll('.sidebar-left .nav-menu a');
+            const menuLinks = document.querySelectorAll('.sidebar-left .nav-menu a');
             
-            menuItems.forEach(item => {
+            menuLinks.forEach(item => {
                 item.addEventListener('click', (e) => {
                     e.preventDefault();
                     
-                    menuItems.forEach(i => i.parentElement.classList.remove('active'));
+                    menuLinks.forEach(i => i.parentElement.classList.remove('active'));
                     item.parentElement.classList.add('active');
 
-                    const text = item.innerText.trim();
-
-                    if (text.includes('Головна')) {
-                        currentTab = 'all';
-                    } else if (text.includes('Популярні')) {
-                        currentTab = 'popular'; 
-                    } else if (text.includes('Нові')) {
-                        currentTab = 'new'; 
-                    } else if (text.includes('На розгляді')) {
-                        currentTab = 'review'; 
-                    } else {
+                    if (item.hasAttribute('data-tab')) {
+                        currentTab = item.getAttribute('data-tab');
+                        selectedCategory = '';
+                    } else if (item.hasAttribute('data-category')) {
                         currentTab = 'category';
-                        selectedCategory = text;
+                        selectedCategory = item.getAttribute('data-category');
                     }
 
                     renderPetitions(searchInput.value);
@@ -458,7 +450,6 @@
             renderPetitions(searchInput.value);
         }
 
-        // Функція для збільшення лічильника переглядів
         function incrementViews(id) {
             if (!viewedPetitions.has(id)) {
                 viewedPetitions.add(id);
@@ -479,7 +470,7 @@
                 } else {
                     shortEl.style.display = 'none';
                     fullEl.style.display = 'inline';
-                    incrementViews(id); // Зараховуємо перегляд при розгортанні тексту
+                    incrementViews(id);
                 }
             }
         };
@@ -500,7 +491,7 @@
             } else if (currentTab === 'new') {
                 tabFiltered = tabFiltered.slice(0, 2);
             } else if (currentTab === 'category') {
-                tabFiltered = tabFiltered.filter(p => (p.category || '') === selectedCategory);
+                tabFiltered = tabFiltered.filter(p => (p.category || '').toLowerCase() === selectedCategory.toLowerCase());
             }
 
             const filtered = tabFiltered.filter(p => {
@@ -523,7 +514,7 @@
                 filtered.forEach(p => {
                     const votesArray = p.voters || [];
                     const votesCount = votesArray.length;
-                    const viewsCount = p.views || 0; // Кількість переглядів
+                    const viewsCount = p.views || 0;
                     const hasVoted = currentUser && votesArray.includes(currentUser.contact);
                     const isOnReview = votesCount >= 7;
                     
@@ -661,7 +652,7 @@
             if (el) {
                 el.classList.toggle('active');
                 if (el.classList.contains('active')) {
-                    incrementViews(id); // Зараховуємо перегляд при відкритті обговорення
+                    incrementViews(id);
                 }
             }
         };
@@ -789,7 +780,7 @@
                     voters: [currentUser.contact],
                     comments: [],
                     files: uploadedFiles,
-                    views: 0, // Початкова кількість переглядів
+                    views: 0,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
