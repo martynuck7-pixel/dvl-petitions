@@ -6,9 +6,10 @@
     <title>DVL Петиції</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK (Compat versions) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -26,7 +27,6 @@
             --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
             --shadow-md: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
             
-            /* Зелений стиль для розгляду */
             --success-border: #10b981;
             --success-bg: #f0fdf4;
             --success-text: #047857;
@@ -85,7 +85,6 @@
         .card-list { display: flex; flex-direction: column; gap: 16px; }
         .empty-state { background: #fff; padding: 50px; text-align: center; border-radius: var(--radius); border: 1px dashed var(--border); color: var(--text-muted); }
         
-        /* Стандартна картка */
         .card { 
             background: var(--card-bg); 
             border-radius: var(--radius); 
@@ -98,7 +97,6 @@
             transition: all 0.2s ease;
         }
 
-        /* ЗЕЛЕНЕ ВИДІЛЕННЯ (якщо 10+ голосів) */
         .card.card-success {
             border: 2px solid var(--success-border);
             background: var(--success-bg);
@@ -118,11 +116,8 @@
         
         .status-tag { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
         .status-collecting { background: #e2e8f0; color: #475569; }
-        
-        /* Зелений статус */
         .status-review { background: #d1fae5; color: var(--success-text); border: 1px solid #a7f3d0; }
 
-        /* Повідомлення про розгляд */
         .review-banner {
             background: #eff6ff;
             border: 1px dashed var(--primary);
@@ -138,7 +133,60 @@
         }
 
         .card-author { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
-        .card-text { font-size: 14px; color: #334155; line-height: 1.6; margin-bottom: 16px; }
+        .card-text { font-size: 14px; color: #334155; line-height: 1.6; margin-bottom: 12px; }
+        
+        /* Кнопка Читати далі */
+        .btn-read-more {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 6px;
+            font-size: 13px;
+        }
+        .btn-read-more:hover { text-decoration: underline; }
+
+        /* Стилі для файлів та зображень */
+        .attachments-container {
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .images-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .attachment-preview-img {
+            max-width: 100%;
+            max-height: 250px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+        }
+        .files-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .attachment-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f1f5f9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--primary);
+            text-decoration: none;
+            border: 1px solid var(--border);
+            font-weight: 500;
+        }
+        .attachment-item:hover { background: var(--primary-soft); }
+
         .btn-toggle-comments { background: none; border: none; color: var(--primary); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 6px; }
 
         .comments-section { border-top: 1px solid var(--border); padding-top: 16px; margin-top: 8px; display: none; }
@@ -163,7 +211,7 @@
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal-overlay.active { display: flex; }
-        .modal { background: #fff; padding: 28px; border-radius: var(--radius); width: 100%; max-width: 480px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+        .modal { background: #fff; padding: 28px; border-radius: var(--radius); width: 100%; max-width: 520px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); }
         .form-group { margin-bottom: 16px; }
@@ -173,6 +221,7 @@
         .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
         .btn-cancel { background: #f1f5f9; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--text-muted); }
         .btn-submit { background: var(--primary); color: #fff; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -274,9 +323,13 @@
                     <label for="description">Опис ініціативи</label>
                     <textarea id="description" required placeholder="Детально опишіть вашу пропозицію..."></textarea>
                 </div>
+                <div class="form-group">
+                    <label for="attachments">Прикріпити фото, файли або презентацію (необов'язково)</label>
+                    <input type="file" id="attachments" multiple accept="image/*,.pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx">
+                </div>
                 <div class="form-actions">
                     <button type="button" class="btn-cancel" id="cancelModalBtn">Скасувати</button>
-                    <button type="submit" class="btn-submit">Опублікувати</button>
+                    <button type="submit" class="btn-submit" id="submitPetitionBtn">Опублікувати</button>
                 </div>
             </form>
         </div>
@@ -295,9 +348,11 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const storage = firebase.storage();
 
         let currentUser = JSON.parse(localStorage.getItem('dvl_user')) || null;
         let petitions = [];
+        const TEXT_LIMIT = 200; // Кількість символів для кнопки "Читати далі"
 
         const authContainer = document.getElementById('authContainer');
         const loginModal = document.getElementById('loginModal');
@@ -357,6 +412,20 @@
             renderPetitions(searchInput.value);
         }
 
+        window.toggleFullText = function(id) {
+            const shortEl = document.getElementById(`text-short-${id}`);
+            const fullEl = document.getElementById(`text-full-${id}`);
+            if (shortEl && fullEl) {
+                if (shortEl.style.display === 'none') {
+                    shortEl.style.display = 'inline';
+                    fullEl.style.display = 'none';
+                } else {
+                    shortEl.style.display = 'none';
+                    fullEl.style.display = 'inline';
+                }
+            }
+        };
+
         function renderPetitions(filterText = '') {
             petitionList.innerHTML = '';
             const query = filterText.trim().toLowerCase();
@@ -387,9 +456,40 @@
                     const statusClass = isOnReview ? 'status-review' : 'status-collecting';
                     const statusText = isOnReview ? 'На розгляді' : `Збір голосів (${votesCount}/10)`;
                     const commentsArray = p.comments || [];
+                    const filesArray = p.files || [];
+
+                    // Обробка довгого тексту
+                    const fullText = p.text || '';
+                    const isLongText = fullText.length > TEXT_LIMIT;
+                    const shortText = isLongText ? fullText.substring(0, TEXT_LIMIT) + '...' : fullText;
+
+                    // Формування файлів та зображень
+                    let attachmentsHTML = '';
+                    if (filesArray.length > 0) {
+                        let imagesHTML = '';
+                        let docsHTML = '';
+
+                        filesArray.forEach(f => {
+                            if (f.type === 'image') {
+                                imagesHTML += `<a href="${f.url}" target="_blank"><img src="${f.url}" class="attachment-preview-img" alt="${escapeHtml(f.name)}"></a>`;
+                            } else {
+                                docsHTML += `
+                                    <a href="${f.url}" target="_blank" class="attachment-item">
+                                        <i class="fa-solid fa-paperclip"></i> ${escapeHtml(f.name)}
+                                    </a>
+                                `;
+                            }
+                        });
+
+                        attachmentsHTML = `
+                            <div class="attachments-container">
+                                ${imagesHTML ? `<div class="images-gallery">${imagesHTML}</div>` : ''}
+                                ${docsHTML ? `<div class="files-list">${docsHTML}</div>` : ''}
+                            </div>
+                        `;
+                    }
 
                     const card = document.createElement('div');
-                    // Зелений клас якщо 10+ голосів
                     card.className = `card ${isOnReview ? 'card-success' : ''}`;
                     
                     card.innerHTML = `
@@ -424,7 +524,21 @@
                                 <div class="card-author">
                                     <strong>${escapeHtml(p.author)}</strong> • Тема: <strong>${escapeHtml(p.category)}</strong> • ${p.date}
                                 </div>
-                                <div class="card-text">${escapeHtml(p.text)}</div>
+                                
+                                <div class="card-text">
+                                    ${isLongText ? `
+                                        <span id="text-short-${p.id}">
+                                            ${escapeHtml(shortText)}
+                                            <button class="btn-read-more" onclick="toggleFullText('${p.id}')">Читати далі</button>
+                                        </span>
+                                        <span id="text-full-${p.id}" style="display: none;">
+                                            ${escapeHtml(fullText)}
+                                            <button class="btn-read-more" onclick="toggleFullText('${p.id}')">Згорнути</button>
+                                        </span>
+                                    ` : escapeHtml(fullText)}
+                                </div>
+
+                                ${attachmentsHTML}
                                 
                                 <button class="btn-toggle-comments" onclick="toggleComments('${p.id}')">
                                     <i class="fa-regular fa-comment"></i> Обговорення (${commentsArray.length})
@@ -483,6 +597,8 @@
                         text: text,
                         date: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date().toLocaleDateString('uk-UA')
                     })
+                }).then(() => {
+                    input.value = '';
                 });
             }
         };
@@ -557,21 +673,53 @@
             petitionForm.reset();
         }
 
-        petitionForm.onsubmit = function(e) {
+        petitionForm.onsubmit = async function(e) {
             e.preventDefault();
             
-            db.collection("petitions").add({
-                title: document.getElementById('title').value,
-                category: document.getElementById('category').value,
-                text: document.getElementById('description').value,
-                author: currentUser.name,
-                date: new Date().toLocaleDateString('uk-UA'),
-                voters: [currentUser.contact],
-                comments: [],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            const submitBtn = document.getElementById('submitPetitionBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Завантаження...';
 
-            closeModal();
+            const fileInput = document.getElementById('attachments');
+            const files = fileInput.files;
+            const uploadedFiles = [];
+
+            try {
+                // Завантаження файлів у Storage
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const storageRef = storage.ref(`petitions_files/${Date.now()}_${file.name}`);
+                    const snapshot = await storageRef.put(file);
+                    const downloadURL = await snapshot.ref.getDownloadURL();
+                    
+                    uploadedFiles.push({
+                        name: file.name,
+                        url: downloadURL,
+                        type: file.type.startsWith('image/') ? 'image' : 'file'
+                    });
+                }
+
+                // Збереження петиції
+                await db.collection("petitions").add({
+                    title: document.getElementById('title').value,
+                    category: document.getElementById('category').value,
+                    text: document.getElementById('description').value,
+                    author: currentUser.name,
+                    date: new Date().toLocaleDateString('uk-UA'),
+                    voters: [currentUser.contact],
+                    comments: [],
+                    files: uploadedFiles,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                closeModal();
+            } catch (err) {
+                console.error("Помилка завантаження файлів або петиції:", err);
+                alert("Помилка при збереженні. Перевірте підключення та дозволи Storage.");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'Опублікувати';
+            }
         };
 
         searchInput.addEventListener('input', function(e) {
