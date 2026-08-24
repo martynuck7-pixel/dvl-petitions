@@ -135,7 +135,6 @@
         .card-author { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
         .card-text { font-size: 14px; color: #334155; line-height: 1.6; margin-bottom: 12px; }
         
-        /* Кнопка Читати далі */
         .btn-read-more {
             background: none;
             border: none;
@@ -148,7 +147,6 @@
         }
         .btn-read-more:hover { text-decoration: underline; }
 
-        /* Стилі для файлів та зображень */
         .attachments-container {
             margin-bottom: 16px;
             display: flex;
@@ -186,6 +184,19 @@
             font-weight: 500;
         }
         .attachment-item:hover { background: var(--primary-soft); }
+
+        .card-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .views-count {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
         .btn-toggle-comments { background: none; border: none; color: var(--primary); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 6px; }
 
@@ -356,6 +367,9 @@
         let selectedCategory = '';
         const TEXT_LIMIT = 200;
 
+        // Зберігаємо відкриті петиції у поточній сесії, щоб не збільшувати лічильник при повторних кліках
+        const viewedPetitions = new Set();
+
         const authContainer = document.getElementById('authContainer');
         const loginModal = document.getElementById('loginModal');
         const loginForm = document.getElementById('loginForm');
@@ -444,6 +458,17 @@
             renderPetitions(searchInput.value);
         }
 
+        // Функція для збільшення лічильника переглядів
+        function incrementViews(id) {
+            if (!viewedPetitions.has(id)) {
+                viewedPetitions.add(id);
+                const petitionRef = db.collection("petitions").doc(id);
+                petitionRef.update({
+                    views: firebase.firestore.FieldValue.increment(1)
+                }).catch(err => console.error("Помилка оновлення переглядів:", err));
+            }
+        }
+
         window.toggleFullText = function(id) {
             const shortEl = document.getElementById(`text-short-${id}`);
             const fullEl = document.getElementById(`text-full-${id}`);
@@ -454,6 +479,7 @@
                 } else {
                     shortEl.style.display = 'none';
                     fullEl.style.display = 'inline';
+                    incrementViews(id); // Зараховуємо перегляд при розгортанні тексту
                 }
             }
         };
@@ -497,6 +523,7 @@
                 filtered.forEach(p => {
                     const votesArray = p.voters || [];
                     const votesCount = votesArray.length;
+                    const viewsCount = p.views || 0; // Кількість переглядів
                     const hasVoted = currentUser && votesArray.includes(currentUser.contact);
                     const isOnReview = votesCount >= 7;
                     
@@ -516,10 +543,10 @@
 
                         filesArray.forEach(f => {
                             if (f.type === 'image') {
-                                imagesHTML += `<a href="${f.url}" target="_blank"><img src="${f.url}" class="attachment-preview-img" alt="${escapeHtml(f.name)}"></a>`;
+                                imagesHTML += `<a href="${f.url}" target="_blank" onclick="incrementViews('${p.id}')"><img src="${f.url}" class="attachment-preview-img" alt="${escapeHtml(f.name)}"></a>`;
                             } else {
                                 docsHTML += `
-                                    <a href="${f.url}" target="_blank" class="attachment-item">
+                                    <a href="${f.url}" target="_blank" onclick="incrementViews('${p.id}')" class="attachment-item">
                                         <i class="fa-solid fa-paperclip"></i> ${escapeHtml(f.name)}
                                     </a>
                                 `;
@@ -563,7 +590,7 @@
                             </div>
                             <div class="card-details">
                                 <div class="card-header">
-                                    <a href="#" class="card-title">${escapeHtml(p.title)}</a>
+                                    <a href="#" class="card-title" onclick="incrementViews('${p.id}')">${escapeHtml(p.title)}</a>
                                     <span class="status-tag ${statusClass}">${statusText}</span>
                                 </div>
                                 <div class="card-author">
@@ -585,9 +612,14 @@
 
                                 ${attachmentsHTML}
                                 
-                                <button class="btn-toggle-comments" onclick="toggleComments('${p.id}')">
-                                    <i class="fa-regular fa-comment"></i> Обговорення (${commentsArray.length})
-                                </button>
+                                <div class="card-actions">
+                                    <button class="btn-toggle-comments" onclick="toggleComments('${p.id}')">
+                                        <i class="fa-regular fa-comment"></i> Обговорення (${commentsArray.length})
+                                    </button>
+                                    <div class="views-count" title="Кількість переглядів">
+                                        <i class="fa-regular fa-eye"></i> ${viewsCount} переглядів
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -626,7 +658,12 @@
 
         window.toggleComments = function(id) {
             const el = document.getElementById(`comments-${id}`);
-            if (el) el.classList.toggle('active');
+            if (el) {
+                el.classList.toggle('active');
+                if (el.classList.contains('active')) {
+                    incrementViews(id); // Зараховуємо перегляд при відкритті обговорення
+                }
+            }
         };
 
         window.addComment = function(id) {
@@ -752,6 +789,7 @@
                     voters: [currentUser.contact],
                     comments: [],
                     files: uploadedFiles,
+                    views: 0, // Початкова кількість переглядів
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
