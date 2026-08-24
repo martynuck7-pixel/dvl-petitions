@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DVL Петиції</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Підключення Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
@@ -22,20 +27,9 @@
             --shadow-md: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-dark); font-size: 14px; }
 
-        body {
-            background-color: var(--bg-main);
-            color: var(--text-dark);
-            font-size: 14px;
-        }
-
-        /* Header */
         header {
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(12px);
@@ -49,176 +43,47 @@
             z-index: 100;
         }
 
-        .logo {
-            font-size: 24px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            color: var(--text-dark);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-transform: uppercase;
-        }
-        .logo-badge {
-            background: var(--text-dark);
-            color: #fff;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 18px;
-            font-weight: 900;
-        }
-        .logo span {
-            font-weight: 400;
-            color: var(--text-muted);
-            font-size: 18px;
-            text-transform: none;
-        }
+        .logo { font-size: 24px; font-weight: 800; color: var(--text-dark); display: flex; align-items: center; gap: 12px; text-transform: uppercase; }
+        .logo-badge { background: var(--text-dark); color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 18px; font-weight: 900; }
+        .logo span { font-weight: 400; color: var(--text-muted); font-size: 18px; text-transform: none; }
 
         .search-bar { width: 35%; position: relative; }
-        .search-bar input {
-            width: 100%;
-            padding: 10px 16px 10px 40px;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            background: #f1f5f9;
-            font-size: 13px;
-        }
-        .search-bar i {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-        }
+        .search-bar input { width: 100%; padding: 10px 16px 10px 40px; border: 1px solid var(--border); border-radius: 10px; background: #f1f5f9; font-size: 13px; }
+        .search-bar i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
 
         .auth-container { display: flex; align-items: center; gap: 12px; }
-        .btn-auth {
-            background: var(--primary);
-            color: #fff;
-            border: none;
-            padding: 9px 18px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .btn-logout {
-            background: #fee2e2;
-            color: #dc2626;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-        }
+        .btn-auth { background: var(--primary); color: #fff; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .btn-logout { background: #fee2e2; color: #dc2626; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
 
         .user-profile { display: flex; align-items: center; gap: 12px; }
         .avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
-        .user-info { font-weight: 600; line-height: 1.2; font-size: 13px; }
+        .user-info { font-weight: 600; font-size: 13px; }
         .user-info span { display: block; font-weight: 400; color: var(--text-muted); font-size: 11px; }
 
-        /* Layout */
-        .layout {
-            display: grid;
-            grid-template-columns: 240px 1fr 300px;
-            gap: 24px;
-            padding: 24px 40px;
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
+        .layout { display: grid; grid-template-columns: 240px 1fr 300px; gap: 24px; padding: 24px 40px; max-width: 1600px; margin: 0 auto; }
         .sidebar-left { display: flex; flex-direction: column; gap: 20px; }
-        .btn-create {
-            background: var(--primary);
-            color: #fff;
-            border: none;
-            padding: 14px;
-            border-radius: var(--radius);
-            font-weight: 600;
-            width: 100%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-        }
+        .btn-create { background: var(--primary); color: #fff; border: none; padding: 14px; border-radius: var(--radius); font-weight: 600; width: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
 
         .nav-menu { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-        .nav-menu li a {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 14px;
-            text-decoration: none;
-            color: var(--text-muted);
-            border-radius: 8px;
-            font-weight: 500;
-        }
-        .nav-menu li.active a, .nav-menu li a:hover {
-            background: var(--primary-soft);
-            color: var(--primary);
-            font-weight: 600;
-        }
+        .nav-menu li a { display: flex; align-items: center; gap: 12px; padding: 10px 14px; text-decoration: none; color: var(--text-muted); border-radius: 8px; font-weight: 500; }
+        .nav-menu li.active a, .nav-menu li a:hover { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
         .menu-title { font-size: 11px; text-transform: uppercase; color: var(--text-muted); margin: 15px 0 5px 14px; font-weight: 700; letter-spacing: 0.5px; }
 
-        /* Main Content */
         .content { display: flex; flex-direction: column; gap: 20px; }
-        .banner {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #fff;
-            padding: 32px;
-            border-radius: var(--radius);
-        }
+        .banner { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #fff; padding: 32px; border-radius: var(--radius); }
         .banner h2 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
         .banner p { color: #94a3b8; max-width: 500px; font-size: 13px; margin-bottom: 24px; }
         .stats-grid { display: flex; gap: 40px; }
         .stat-val { font-size: 22px; font-weight: 800; }
         .stat-lbl { font-size: 12px; color: #64748b; }
 
-        /* Cards & Comments */
         .card-list { display: flex; flex-direction: column; gap: 16px; }
-        .empty-state {
-            background: #fff;
-            padding: 50px;
-            text-align: center;
-            border-radius: var(--radius);
-            border: 1px dashed var(--border);
-            color: var(--text-muted);
-        }
-        .card {
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            padding: 24px;
-            border: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
+        .empty-state { background: #fff; padding: 50px; text-align: center; border-radius: var(--radius); border: 1px dashed var(--border); color: var(--text-muted); }
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow-sm); }
         .card-main { display: flex; gap: 20px; }
-        .vote-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: #f8fafc;
-            padding: 12px;
-            border-radius: 10px;
-            width: 90px;
-            height: fit-content;
-            border: 1px solid var(--border);
-        }
+        .vote-box { display: flex; flex-direction: column; align-items: center; background: #f8fafc; padding: 12px; border-radius: 10px; width: 90px; height: fit-content; border: 1px solid var(--border); }
         .vote-count { font-size: 18px; font-weight: 800; margin: 4px 0; }
-        .vote-btn {
-            background: var(--primary);
-            color: #fff;
-            border: none;
-            padding: 6px;
-            width: 100%;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 11px;
-            font-weight: 600;
-        }
+        .vote-btn { background: var(--primary); color: #fff; border: none; padding: 6px; width: 100%; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600; }
         .vote-btn.voted { background: #10b981; }
 
         .card-details { flex: 1; }
@@ -231,95 +96,36 @@
 
         .card-author { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
         .card-text { font-size: 14px; color: #334155; line-height: 1.6; margin-bottom: 16px; }
-        
-        .btn-toggle-comments {
-            background: none;
-            border: none;
-            color: var(--primary);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .btn-toggle-comments { background: none; border: none; color: var(--primary); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 6px; }
 
-        /* Comments Section */
-        .comments-section {
-            border-top: 1px solid var(--border);
-            padding-top: 16px;
-            margin-top: 8px;
-            display: none;
-        }
+        .comments-section { border-top: 1px solid var(--border); padding-top: 16px; margin-top: 8px; display: none; }
         .comments-section.active { display: block; }
-        .comments-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; color: var(--text-dark); }
+        .comments-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
         .comment-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
-        .comment-item {
-            background: #f8fafc;
-            padding: 10px 14px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
+        .comment-item { background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); }
         .comment-header { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
         .comment-author { font-weight: 700; color: var(--text-dark); }
-        .comment-text { font-size: 13px; color: #334155; line-height: 1.4; }
+        .comment-text { font-size: 13px; color: #334155; }
 
         .add-comment-box { display: flex; gap: 8px; }
-        .add-comment-box input {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 13px;
-        }
-        .btn-send-comment {
-            background: var(--primary);
-            color: #fff;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-        }
+        .add-comment-box input { flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
+        .btn-send-comment { background: var(--primary); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
 
         .sidebar-right { display: flex; flex-direction: column; gap: 20px; }
-        .widget { background: #fff; border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); }
+        .widget { background: #fff; border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
         .widget-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; }
         .ranking-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
         .ranking-item { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
         .rank-num { width: 22px; height: 22px; background: #f1f5f9; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; margin-right: 10px; color: var(--text-muted); }
 
-        /* Modals */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(4px);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal-overlay.active { display: flex; }
-        .modal {
-            background: #fff;
-            padding: 28px;
-            border-radius: var(--radius);
-            width: 100%;
-            max-width: 480px;
-        }
+        .modal { background: #fff; padding: 28px; border-radius: var(--radius); width: 100%; max-width: 480px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); }
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 12px; }
-        .form-group input, .form-group textarea, .form-group select {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 13px;
-        }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
         .form-group textarea { height: 100px; resize: vertical; }
         .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
         .btn-cancel { background: #f1f5f9; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--text-muted); }
@@ -328,7 +134,6 @@
 </head>
 <body>
 
-    <!-- Header -->
     <header>
         <div class="logo"><div class="logo-badge">DVL</div><span>Петиції</span></div>
         <div class="search-bar">
@@ -338,9 +143,7 @@
         <div class="auth-container" id="authContainer"></div>
     </header>
 
-    <!-- Main Layout -->
     <div class="layout">
-        <!-- Sidebar Left -->
         <aside class="sidebar-left">
             <button class="btn-create" id="openModalBtn"><i class="fa-solid fa-plus"></i> Створити петицію</button>
             <ul class="nav-menu">
@@ -359,7 +162,6 @@
             </ul>
         </aside>
 
-        <!-- Content Area -->
         <main class="content">
             <div class="banner">
                 <h2>Запропонуй. Підтримай. Зміни.</h2>
@@ -370,11 +172,9 @@
                 </div>
             </div>
 
-            <!-- List of Petitions -->
             <div class="card-list" id="petitionList"></div>
         </main>
 
-        <!-- Sidebar Right -->
         <aside class="sidebar-right">
             <div class="widget">
                 <div class="widget-title">Найпідтримуваніші</div>
@@ -383,7 +183,7 @@
         </aside>
     </div>
 
-    <!-- Login Modal -->
+    <!-- Modals -->
     <div class="modal-overlay" id="loginModal">
         <div class="modal">
             <div class="modal-header">
@@ -407,7 +207,6 @@
         </div>
     </div>
 
-    <!-- Create Petition Modal -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <div class="modal-header">
@@ -441,9 +240,22 @@
     </div>
 
     <script>
-        let currentUser = null;
+        // ВАШІ КЛЮЧІ FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-JEsLU4oRUyY_5K5ywFYZ0Vejy4ZolCc",
+            authDomain: "dvl-petitions.firebaseapp.com",
+            projectId: "dvl-petitions",
+            storageBucket: "dvl-petitions.firebasestorage.app",
+            messagingSenderId: "115540107137",
+            appId: "1:115540107137:web:2edf94364d4ab536add280",
+            measurementId: "G-SK5YHFM6TD"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let currentUser = JSON.parse(localStorage.getItem('dvl_user')) || null;
         let petitions = [];
-        let totalVotesCast = 0;
 
         const authContainer = document.getElementById('authContainer');
         const loginModal = document.getElementById('loginModal');
@@ -453,6 +265,15 @@
         const modalOverlay = document.getElementById('modalOverlay');
         const petitionForm = document.getElementById('petitionForm');
         const searchInput = document.getElementById('searchInput');
+
+        // Синхронізація з кастомною Базою Даних у режимі реального часу
+        db.collection("petitions").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
+            petitions = [];
+            snapshot.forEach((doc) => {
+                petitions.push({ id: doc.id, ...doc.data() });
+            });
+            renderPetitions(searchInput.value);
+        });
 
         function renderAuth() {
             if (currentUser) {
@@ -482,6 +303,7 @@
                 name: document.getElementById('userName').value,
                 contact: document.getElementById('loginContact').value
             };
+            localStorage.setItem('dvl_user', JSON.stringify(currentUser));
             closeLoginModal();
             renderAuth();
             renderPetitions(searchInput.value);
@@ -489,6 +311,7 @@
 
         function logout() {
             currentUser = null;
+            localStorage.removeItem('dvl_user');
             renderAuth();
             renderPetitions(searchInput.value);
         }
@@ -510,9 +333,13 @@
                 `;
             } else {
                 filtered.forEach(p => {
-                    const isOnReview = p.votes >= 10;
+                    const votesArray = p.voters || [];
+                    const votesCount = votesArray.length;
+                    const hasVoted = currentUser && votesArray.includes(currentUser.contact);
+                    const isOnReview = votesCount >= 10;
                     const statusClass = isOnReview ? 'status-review' : 'status-collecting';
-                    const statusText = isOnReview ? 'На розгляді' : `Збір голосів (${p.votes}/10)`;
+                    const statusText = isOnReview ? 'На розгляді' : `Збір голосів (${votesCount}/10)`;
+                    const commentsArray = p.comments || [];
 
                     const card = document.createElement('div');
                     card.className = 'card';
@@ -520,12 +347,12 @@
                         <div class="card-main">
                             <div class="vote-box">
                                 <i class="fa-solid fa-chevron-up" style="color:var(--primary)"></i>
-                                <div class="vote-count">${p.votes}</div>
+                                <div class="vote-count">${votesCount}</div>
                                 <span style="font-size:10px; color:gray">голосів</span>
                                 
                                 ${currentUser ? `
-                                    <button class="vote-btn ${p.voted ? 'voted' : ''}" onclick="toggleVote(${p.id})">
-                                        ${p.voted ? 'Підтримано' : 'Підтримати'}
+                                    <button class="vote-btn ${hasVoted ? 'voted' : ''}" onclick="toggleVote('${p.id}')">
+                                        ${hasVoted ? 'Підтримано' : 'Підтримати'}
                                     </button>
                                 ` : `
                                     <button class="vote-btn" onclick="requireLoginAlert()">
@@ -543,18 +370,17 @@
                                 </div>
                                 <div class="card-text">${escapeHtml(p.text)}</div>
                                 
-                                <button class="btn-toggle-comments" onclick="toggleComments(${p.id})">
-                                    <i class="fa-regular fa-comment"></i> Обговорення (${p.comments.length})
+                                <button class="btn-toggle-comments" onclick="toggleComments('${p.id}')">
+                                    <i class="fa-regular fa-comment"></i> Обговорення (${commentsArray.length})
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Секція коментарів -->
-                        <div class="comments-section ${p.showComments ? 'active' : ''}" id="comments-${p.id}">
+                        <div class="comments-section" id="comments-${p.id}">
                             <div class="comments-title">Обговорення та коментарі</div>
                             <div class="comment-list">
-                                ${p.comments.length === 0 ? '<div style="font-size:12px; color:var(--text-muted)">Коментарів поки немає. Будьте першим!</div>' : ''}
-                                ${p.comments.map(c => `
+                                ${commentsArray.length === 0 ? '<div style="font-size:12px; color:var(--text-muted)">Коментарів поки немає.</div>' : ''}
+                                ${commentsArray.map(c => `
                                     <div class="comment-item">
                                         <div class="comment-header">
                                             <span class="comment-author">${escapeHtml(c.author)}</span>
@@ -568,12 +394,10 @@
                             ${currentUser ? `
                                 <div class="add-comment-box">
                                     <input type="text" id="comment-input-${p.id}" placeholder="Напишіть ваш коментар...">
-                                    <button class="btn-send-comment" onclick="addComment(${p.id})">Надіслати</button>
+                                    <button class="btn-send-comment" onclick="addComment('${p.id}')">Надіслати</button>
                                 </div>
                             ` : `
-                                <div style="font-size:12px; color:var(--text-muted)">
-                                    <a href="#" onclick="openLoginModal()" style="color:var(--primary); font-weight:600">Авторизуйтесь</a>, щоб залишити коментар.
-                                </div>
+                                <div style="font-size:12px; color:var(--text-muted)">Увійдіть, щоб залишити коментар.</div>
                             `}
                         </div>
                     `;
@@ -585,30 +409,43 @@
             renderRanking();
         }
 
-        // Обговорення: Розгортання / Згортання
         window.toggleComments = function(id) {
-            const item = petitions.find(p => p.id === id);
-            if (item) {
-                item.showComments = !item.showComments;
-                renderPetitions(searchInput.value);
-            }
+            const el = document.getElementById(`comments-${id}`);
+            if (el) el.classList.toggle('active');
         };
 
-        // Додавання коментаря
         window.addComment = function(id) {
             if (!currentUser) return;
             const input = document.getElementById(`comment-input-${id}`);
             const text = input.value.trim();
 
             if (text) {
-                const item = petitions.find(p => p.id === id);
-                if (item) {
-                    item.comments.push({
+                const petitionRef = db.collection("petitions").doc(id);
+                petitionRef.update({
+                    comments: firebase.firestore.FieldValue.arrayUnion({
                         author: currentUser.name,
                         text: text,
                         date: new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date().toLocaleDateString('uk-UA')
+                    })
+                });
+            }
+        };
+
+        window.toggleVote = function(id) {
+            if (!currentUser) return;
+            const petitionRef = db.collection("petitions").doc(id);
+            const p = petitions.find(item => item.id === id);
+            
+            if (p) {
+                const voters = p.voters || [];
+                if (voters.includes(currentUser.contact)) {
+                    petitionRef.update({
+                        voters: firebase.firestore.FieldValue.arrayRemove(currentUser.contact)
                     });
-                    renderPetitions(searchInput.value);
+                } else {
+                    petitionRef.update({
+                        voters: firebase.firestore.FieldValue.arrayUnion(currentUser.contact)
+                    });
                 }
             }
         };
@@ -624,7 +461,7 @@
                 rankingList.innerHTML = '<li style="color:var(--text-muted); font-size:12px;">Список порожній</li>';
                 return;
             }
-            const sorted = [...petitions].sort((a, b) => b.votes - a.votes).slice(0, 3);
+            const sorted = [...petitions].sort((a, b) => (b.voters?.length || 0) - (a.voters?.length || 0)).slice(0, 3);
             
             sorted.forEach((p, idx) => {
                 const item = document.createElement('li');
@@ -634,7 +471,7 @@
                         <span class="rank-num">${idx + 1}</span> 
                         <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px;">${escapeHtml(p.title)}</span>
                     </div>
-                    <strong>${p.votes}</strong>
+                    <strong>${p.voters?.length || 0}</strong>
                 `;
                 rankingList.appendChild(item);
             });
@@ -642,26 +479,10 @@
 
         function updateStats() {
             document.getElementById('totalCount').innerText = petitions.length;
-            document.getElementById('votesToday').innerText = totalVotesCast;
+            let sumVotes = 0;
+            petitions.forEach(p => sumVotes += (p.voters?.length || 0));
+            document.getElementById('votesToday').innerText = sumVotes;
         }
-
-        window.toggleVote = function(id) {
-            if (!currentUser) return;
-            
-            const item = petitions.find(p => p.id === id);
-            if (item) {
-                if (item.voted) {
-                    item.votes--;
-                    item.voted = false;
-                    totalVotesCast--;
-                } else {
-                    item.votes++;
-                    item.voted = true;
-                    totalVotesCast++;
-                }
-                renderPetitions(searchInput.value);
-            }
-        };
 
         document.getElementById('openModalBtn').onclick = () => {
             if (!currentUser) {
@@ -683,24 +504,18 @@
         petitionForm.onsubmit = function(e) {
             e.preventDefault();
             
-            const newPetition = {
-                id: Date.now(),
+            db.collection("petitions").add({
                 title: document.getElementById('title').value,
                 category: document.getElementById('category').value,
                 text: document.getElementById('description').value,
                 author: currentUser.name,
                 date: new Date().toLocaleDateString('uk-UA'),
-                votes: 1,
-                voted: true,
+                voters: [currentUser.contact],
                 comments: [],
-                showComments: false
-            };
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
 
-            petitions.unshift(newPetition);
-            totalVotesCast++;
-            
             closeModal();
-            renderPetitions();
         };
 
         searchInput.oninput = function(e) {
@@ -712,7 +527,6 @@
         }
 
         renderAuth();
-        renderPetitions();
     </script>
 </body>
 </html>
