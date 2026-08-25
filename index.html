@@ -27,10 +27,12 @@
             --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
             --shadow-md: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
             
+            /* Зелений стиль для Популярних (15-29 голосів) */
             --success-border: #10b981;
             --success-bg: #f0fdf4;
             --success-text: #047857;
 
+            /* Помаранчевий стиль для На розгляді (30+ голосів) */
             --review-border: #f59e0b;
             --review-bg: #fffbeb;
             --review-text: #b45309;
@@ -242,7 +244,7 @@
             
             <ul class="nav-menu" id="tabMenu">
                 <li class="active"><a onclick="setFilter('all', '', this)"><i class="fa-solid fa-house"></i> Головна</a></li>
-                <li><a onclick="setFilter('popular', '', this)"><i class="fa-solid fa-fire"></i> Популярні</a></li>
+                <li><a onclick="setFilter('popular', '', this)"><i class="fa-solid fa-fire"></i> Популярні (15+)</a></li>
                 <li><a onclick="setFilter('new', '', this)"><i class="fa-regular fa-sun"></i> Нові</a></li>
                 <li><a onclick="setFilter('review', '', this)"><i class="fa-regular fa-clock"></i> На розгляді (30+)</a></li>
                 <li><a onclick="setFilter('archive', '', this)"><i class="fa-solid fa-box-archive"></i> Архів</a></li>
@@ -282,17 +284,21 @@
     <div class="modal-overlay" id="loginModal">
         <div class="modal">
             <div class="modal-header">
-                <h3>Авторизація</h3>
+                <h3>Реєстрація / Авторизація</h3>
                 <button class="close-btn" onclick="closeLoginModal()">&times;</button>
             </div>
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="loginContact">Email або Номер телефону</label>
-                    <input type="text" id="loginContact" placeholder="+380632107296 або example@dvl.ua" required>
-                </div>
-                <div class="form-group">
                     <label for="userName">Ваше Ім'я та Прізвище</label>
                     <input type="text" id="userName" placeholder="напр. Олексій Коваленко" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPhone">Номер телефону</label>
+                    <input type="text" id="loginPhone" placeholder="+380632107296" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginEmail">Gmail пошта (@gmail.com)</label>
+                    <input type="email" id="loginEmail" placeholder="example@gmail.com" required>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-cancel" onclick="closeLoginModal()">Скасувати</button>
@@ -355,18 +361,16 @@
 
         const ADMIN_PHONE = "+380632107296";
 
-        function cleanContact(contact) {
-            if (!contact) return '';
-            let val = contact.trim();
-            if (val.includes('@')) return val.toLowerCase();
-            let digits = val.replace(/\D/g, '');
+        function cleanPhone(phone) {
+            if (!phone) return '';
+            let digits = phone.trim().replace(/\D/g, '');
             if (digits.length === 10 && digits.startsWith('0')) digits = '38' + digits;
-            return digits ? '+' + digits : val;
+            return digits ? '+' + digits : phone.trim();
         }
 
         let currentUser = JSON.parse(localStorage.getItem('dvl_user')) || null;
-        if (currentUser && currentUser.contact) {
-            currentUser.contact = cleanContact(currentUser.contact);
+        if (currentUser && currentUser.phone) {
+            currentUser.phone = cleanPhone(currentUser.phone);
         }
 
         let petitions = [];
@@ -411,7 +415,7 @@
         });
 
         function isAdmin() {
-            return currentUser && currentUser.contact === ADMIN_PHONE;
+            return currentUser && currentUser.phone === ADMIN_PHONE;
         }
 
         function isExpired(p) {
@@ -440,10 +444,10 @@
                 const adminBadge = isAdmin() ? ' <span style="color:#ef4444; font-weight:bold;">(Адмін)</span>' : '';
                 authContainer.innerHTML = `
                     <div class="user-profile">
-                        <img src="https://i.pravatar.cc/100?u=${encodeURIComponent(currentUser.contact)}" class="avatar" alt="Avatar">
+                        <img src="https://i.pravatar.cc/100?u=${encodeURIComponent(currentUser.email || currentUser.phone)}" class="avatar" alt="Avatar">
                         <div class="user-info">
                             ${escapeHtml(currentUser.name)}${adminBadge}
-                            <span>Співробітник</span>
+                            <span>${escapeHtml(currentUser.email || '')}</span>
                         </div>
                         <button class="btn-logout" onclick="logout()">Вийти</button>
                     </div>
@@ -460,10 +464,16 @@
 
         loginForm.onsubmit = function(e) {
             e.preventDefault();
-            currentUser = {
-                name: document.getElementById('userName').value.trim(),
-                contact: cleanContact(document.getElementById('loginContact').value)
-            };
+            const name = document.getElementById('userName').value.trim();
+            const phone = cleanPhone(document.getElementById('loginPhone').value);
+            const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+
+            if (!email.endsWith('@gmail.com')) {
+                alert('Помилка! Реєстрація дозволена тільки через Gmail пошту (@gmail.com).');
+                return;
+            }
+
+            currentUser = { name, phone, email };
             localStorage.setItem('dvl_user', JSON.stringify(currentUser));
             closeLoginModal();
             renderAuth();
@@ -525,7 +535,7 @@
                 if (currentTab === 'popular') {
                     tabFiltered = tabFiltered.filter(p => {
                         const count = p.voters?.length || 0;
-                        return count >= 10 && count < 30;
+                        return count >= 15 && count < 30;
                     });
                 } else if (currentTab === 'review') {
                     tabFiltered = tabFiltered.filter(p => (p.voters?.length || 0) >= 30);
@@ -557,11 +567,13 @@
                     const votesArray = p.voters || [];
                     const votesCount = votesArray.length;
                     const viewsCount = p.views || 0;
-                    const hasVoted = currentUser && votesArray.includes(currentUser.contact);
-                    const isOwner = currentUser && (p.authorContact === currentUser.contact || p.author === currentUser.name);
+                    
+                    const userKey = currentUser ? (currentUser.email || currentUser.phone) : null;
+                    const hasVoted = currentUser && votesArray.includes(userKey);
+                    const isOwner = currentUser && (p.authorContact === userKey || p.author === currentUser.name);
                     const isArchived = isExpired(p);
 
-                    const isPopular = votesCount >= 10 && votesCount < 30;
+                    const isPopular = votesCount >= 15 && votesCount < 30;
                     const isOnReview = votesCount >= 30;
                     
                     let cardClass = '';
@@ -578,7 +590,7 @@
                     } else if (isPopular) {
                         cardClass = 'card-popular';
                         statusClass = 'status-popular';
-                        statusText = 'Популярна';
+                        statusText = 'Популярна (15+)';
                     }
 
                     const commentsArray = p.comments || [];
@@ -750,13 +762,15 @@
             
             if (p && !isExpired(p)) {
                 const voters = p.voters || [];
-                if (voters.includes(currentUser.contact)) {
+                const userKey = currentUser.email || currentUser.phone;
+
+                if (voters.includes(userKey)) {
                     petitionRef.update({
-                        voters: firebase.firestore.FieldValue.arrayRemove(currentUser.contact)
+                        voters: firebase.firestore.FieldValue.arrayRemove(userKey)
                     });
                 } else {
                     petitionRef.update({
-                        voters: firebase.firestore.FieldValue.arrayUnion(currentUser.contact)
+                        voters: firebase.firestore.FieldValue.arrayUnion(userKey)
                     });
                 }
             }
@@ -841,14 +855,16 @@
                     });
                 }
 
+                const userKey = currentUser.email || currentUser.phone;
+
                 await db.collection("petitions").add({
                     title: document.getElementById('title').value.trim(),
                     category: document.getElementById('category').value,
                     text: document.getElementById('description').value.trim(),
                     author: currentUser.name,
-                    authorContact: currentUser.contact,
+                    authorContact: userKey,
                     date: new Date().toLocaleDateString('uk-UA'),
-                    voters: [currentUser.contact],
+                    voters: [userKey],
                     comments: [],
                     files: uploadedFiles,
                     views: 0,
