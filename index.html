@@ -27,12 +27,10 @@
             --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
             --shadow-md: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
             
-            /* Зелений стиль для Популярних (15-29 голосів) */
             --success-border: #10b981;
             --success-bg: #f0fdf4;
             --success-text: #047857;
 
-            /* Помаранчевий стиль для На розгляді (30+ голосів) */
             --review-border: #f59e0b;
             --review-bg: #fffbeb;
             --review-text: #b45309;
@@ -164,16 +162,21 @@
         .btn-read-more:hover { text-decoration: underline; }
 
         .btn-delete-petition {
-            background: none;
-            border: none;
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
             color: #ef4444;
             cursor: pointer;
-            font-size: 13px;
-            padding: 4px;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 6px;
             margin-left: auto;
-            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
+            transition: all 0.2s;
         }
-        .btn-delete-petition:hover { color: #dc2626; }
+        .btn-delete-petition:hover { background: #fca5a5; color: #991b1b; }
 
         .attachments-container {
             margin-bottom: 16px;
@@ -326,7 +329,7 @@
             <form id="loginForm">
                 <div class="form-group">
                     <label for="loginContact">Email або Номер телефону</label>
-                    <input type="text" id="loginContact" placeholder="example@dvl.ua або +380..." required>
+                    <input type="text" id="loginContact" placeholder="example@dvl.ua або +380632107296" required>
                 </div>
                 <div class="form-group">
                     <label for="userName">Ваше Ім'я та Прізвище</label>
@@ -393,7 +396,20 @@
 
         const ADMIN_PHONE = "+380632107296";
 
+        // Нормализация контактных данных (удаляет лишние символы для номеров)
+        function normalizeContact(contact) {
+            if (!contact) return '';
+            let cleaned = contact.trim();
+            if (cleaned.startsWith('0')) cleaned = '+38' + cleaned;
+            if (cleaned.startsWith('380')) cleaned = '+' + cleaned;
+            return cleaned;
+        }
+
         let currentUser = JSON.parse(localStorage.getItem('dvl_user')) || null;
+        if (currentUser && currentUser.contact) {
+            currentUser.contact = normalizeContact(currentUser.contact);
+        }
+
         let petitions = [];
         let currentTab = 'all'; 
         let selectedCategory = '';
@@ -438,14 +454,24 @@
         }
 
         function isExpired(petition) {
-            if (!petition.createdAt) return false;
-            const createdDate = petition.createdAt.toDate ? petition.createdAt.toDate() : new Date(petition.createdAt);
-            const now = new Date();
-            const diffTime = Math.abs(now - createdDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
             const votesCount = petition.voters?.length || 0;
-            return diffDays > 30 && votesCount < 30;
+            if (votesCount >= 30) return false;
+
+            let createdDate = null;
+            if (petition.createdAt && petition.createdAt.toDate) {
+                createdDate = petition.createdAt.toDate();
+            } else if (petition.date) {
+                const parts = petition.date.split('.');
+                if (parts.length === 3) {
+                    createdDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                }
+            }
+
+            if (!createdDate) return false;
+
+            const now = new Date();
+            const diffDays = (now - createdDate) / (1000 * 60 * 60 * 24);
+            return diffDays > 30;
         }
 
         function renderAuth() {
@@ -475,7 +501,7 @@
             e.preventDefault();
             currentUser = {
                 name: document.getElementById('userName').value.trim(),
-                contact: document.getElementById('loginContact').value.trim()
+                contact: normalizeContact(document.getElementById('loginContact').value)
             };
             localStorage.setItem('dvl_user', JSON.stringify(currentUser));
             closeLoginModal();
@@ -662,7 +688,7 @@
                                     <span class="status-tag ${statusClass}">${statusText}</span>
                                     ${(isOwner || isAdmin()) ? `
                                         <button class="btn-delete-petition" onclick="deletePetition('${p.id}')" title="Видалити петицію">
-                                            <i class="fa-solid fa-trash"></i>
+                                            <i class="fa-solid fa-trash"></i> Видалити
                                         </button>
                                     ` : ''}
                                 </div>
