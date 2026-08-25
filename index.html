@@ -178,56 +178,15 @@
         }
         .btn-delete-petition:hover { background: #fca5a5; color: #991b1b; }
 
-        .attachments-container {
-            margin-bottom: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .images-gallery {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .attachment-preview-img {
-            max-width: 100%;
-            max-height: 250px;
-            border-radius: 8px;
-            object-fit: cover;
-            border: 1px solid var(--border);
-        }
-        .files-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .attachment-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #f1f5f9;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            color: var(--primary);
-            text-decoration: none;
-            border: 1px solid var(--border);
-            font-weight: 500;
-        }
+        .attachments-container { margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; }
+        .images-gallery { display: flex; flex-wrap: wrap; gap: 10px; }
+        .attachment-preview-img { max-width: 100%; max-height: 250px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border); }
+        .files-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .attachment-item { display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; padding: 8px 12px; border-radius: 6px; font-size: 12px; color: var(--primary); text-decoration: none; border: 1px solid var(--border); font-weight: 500; }
         .attachment-item:hover { background: var(--primary-soft); }
 
-        .card-actions {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        .views-count {
-            font-size: 12px;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+        .card-actions { display: flex; align-items: center; gap: 16px; }
+        .views-count { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
 
         .btn-toggle-comments { background: none; border: none; color: var(--primary); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 6px; }
 
@@ -329,7 +288,7 @@
             <form id="loginForm">
                 <div class="form-group">
                     <label for="loginContact">Email або Номер телефону</label>
-                    <input type="text" id="loginContact" placeholder="example@dvl.ua або +380632107296" required>
+                    <input type="text" id="loginContact" placeholder="+380632107296 або example@dvl.ua" required>
                 </div>
                 <div class="form-group">
                     <label for="userName">Ваше Ім'я та Прізвище</label>
@@ -396,18 +355,18 @@
 
         const ADMIN_PHONE = "+380632107296";
 
-        // Нормализация контактных данных (удаляет лишние символы для номеров)
-        function normalizeContact(contact) {
+        function cleanContact(contact) {
             if (!contact) return '';
-            let cleaned = contact.trim();
-            if (cleaned.startsWith('0')) cleaned = '+38' + cleaned;
-            if (cleaned.startsWith('380')) cleaned = '+' + cleaned;
-            return cleaned;
+            let val = contact.trim();
+            if (val.includes('@')) return val.toLowerCase();
+            let digits = val.replace(/\D/g, '');
+            if (digits.length === 10 && digits.startsWith('0')) digits = '38' + digits;
+            return digits ? '+' + digits : val;
         }
 
         let currentUser = JSON.parse(localStorage.getItem('dvl_user')) || null;
         if (currentUser && currentUser.contact) {
-            currentUser.contact = normalizeContact(currentUser.contact);
+            currentUser.contact = cleanContact(currentUser.contact);
         }
 
         let petitions = [];
@@ -447,30 +406,32 @@
                 petitions.push({ id: doc.id, ...doc.data() });
             });
             renderPetitions(searchInput.value);
+        }, (err) => {
+            console.error("Помилка Firestore:", err);
         });
 
         function isAdmin() {
             return currentUser && currentUser.contact === ADMIN_PHONE;
         }
 
-        function isExpired(petition) {
-            const votesCount = petition.voters?.length || 0;
+        function isExpired(p) {
+            const votesCount = p.voters?.length || 0;
             if (votesCount >= 30) return false;
 
-            let createdDate = null;
-            if (petition.createdAt && petition.createdAt.toDate) {
-                createdDate = petition.createdAt.toDate();
-            } else if (petition.date) {
-                const parts = petition.date.split('.');
+            let createdMs = null;
+            if (p.createdAt && p.createdAt.seconds) {
+                createdMs = p.createdAt.seconds * 1000;
+            } else if (p.date) {
+                const parts = p.date.split('.');
                 if (parts.length === 3) {
-                    createdDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                    createdMs = new Date(parts[2], parts[1] - 1, parts[0]).getTime();
                 }
             }
 
-            if (!createdDate) return false;
+            if (!createdMs) return false;
 
-            const now = new Date();
-            const diffDays = (now - createdDate) / (1000 * 60 * 60 * 24);
+            const now = Date.now();
+            const diffDays = (now - createdMs) / (1000 * 60 * 60 * 24);
             return diffDays > 30;
         }
 
@@ -501,7 +462,7 @@
             e.preventDefault();
             currentUser = {
                 name: document.getElementById('userName').value.trim(),
-                contact: normalizeContact(document.getElementById('loginContact').value)
+                contact: cleanContact(document.getElementById('loginContact').value)
             };
             localStorage.setItem('dvl_user', JSON.stringify(currentUser));
             closeLoginModal();
@@ -519,10 +480,9 @@
         function incrementViews(id) {
             if (!viewedPetitions.has(id)) {
                 viewedPetitions.add(id);
-                const petitionRef = db.collection("petitions").doc(id);
-                petitionRef.update({
+                db.collection("petitions").doc(id).update({
                     views: firebase.firestore.FieldValue.increment(1)
-                }).catch(err => console.error("Помилка оновлення переглядів:", err));
+                }).catch(err => console.error("Помилка переглядів:", err));
             }
         }
 
@@ -546,7 +506,7 @@
             try {
                 await db.collection("petitions").doc(id).delete();
             } catch (err) {
-                console.error("Помилка видалення петиції:", err);
+                console.error("Помилка видалення:", err);
                 alert("Виникла помилка при видаленні.");
             }
         };
@@ -565,7 +525,7 @@
                 if (currentTab === 'popular') {
                     tabFiltered = tabFiltered.filter(p => {
                         const count = p.voters?.length || 0;
-                        return count >= 15 && count < 30;
+                        return count >= 10 && count < 30;
                     });
                 } else if (currentTab === 'review') {
                     tabFiltered = tabFiltered.filter(p => (p.voters?.length || 0) >= 30);
@@ -598,10 +558,10 @@
                     const votesCount = votesArray.length;
                     const viewsCount = p.views || 0;
                     const hasVoted = currentUser && votesArray.includes(currentUser.contact);
-                    const isOwner = currentUser && (p.author === currentUser.name);
+                    const isOwner = currentUser && (p.authorContact === currentUser.contact || p.author === currentUser.name);
                     const isArchived = isExpired(p);
 
-                    const isPopular = votesCount >= 15 && votesCount < 30;
+                    const isPopular = votesCount >= 10 && votesCount < 30;
                     const isOnReview = votesCount >= 30;
                     
                     let cardClass = '';
@@ -771,8 +731,7 @@
             const text = input.value.trim();
 
             if (text) {
-                const petitionRef = db.collection("petitions").doc(id);
-                petitionRef.update({
+                db.collection("petitions").doc(id).update({
                     comments: firebase.firestore.FieldValue.arrayUnion({
                         author: currentUser.name,
                         text: text,
@@ -887,6 +846,7 @@
                     category: document.getElementById('category').value,
                     text: document.getElementById('description').value.trim(),
                     author: currentUser.name,
+                    authorContact: currentUser.contact,
                     date: new Date().toLocaleDateString('uk-UA'),
                     voters: [currentUser.contact],
                     comments: [],
@@ -897,7 +857,7 @@
 
                 closeModal();
             } catch (err) {
-                console.error("Помилка завантаження файлів або петиції:", err);
+                console.error("Помилка зберігання:", err);
                 alert("Помилка при збереженні. Перевірте підключення та дозволи Storage.");
             } finally {
                 submitBtn.disabled = false;
