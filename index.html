@@ -368,8 +368,13 @@
             return digits ? '+' + digits : phone.trim();
         }
 
+        // Завантаження та перевірка цілісності користувача з пам'яті
         let currentUser = JSON.parse(localStorage.getItem('dvl_user')) || null;
-        if (currentUser && currentUser.phone) {
+        if (currentUser && (!currentUser.email || !currentUser.phone)) {
+            // Якщо збережений застарілий профіль без Gmail - скидаємо його
+            currentUser = null;
+            localStorage.removeItem('dvl_user');
+        } else if (currentUser && currentUser.phone) {
             currentUser.phone = cleanPhone(currentUser.phone);
         }
 
@@ -415,7 +420,7 @@
         });
 
         function isAdmin() {
-            return currentUser && currentUser.phone === ADMIN_PHONE;
+            return currentUser && cleanPhone(currentUser.phone) === ADMIN_PHONE;
         }
 
         function isExpired(p) {
@@ -444,10 +449,10 @@
                 const adminBadge = isAdmin() ? ' <span style="color:#ef4444; font-weight:bold;">(Адмін)</span>' : '';
                 authContainer.innerHTML = `
                     <div class="user-profile">
-                        <img src="https://i.pravatar.cc/100?u=${encodeURIComponent(currentUser.email || currentUser.phone)}" class="avatar" alt="Avatar">
+                        <img src="https://i.pravatar.cc/100?u=${encodeURIComponent(currentUser.email)}" class="avatar" alt="Avatar">
                         <div class="user-info">
                             ${escapeHtml(currentUser.name)}${adminBadge}
-                            <span>${escapeHtml(currentUser.email || '')}</span>
+                            <span>${escapeHtml(currentUser.email)}</span>
                         </div>
                         <button class="btn-logout" onclick="logout()">Вийти</button>
                     </div>
@@ -466,14 +471,14 @@
             e.preventDefault();
             const name = document.getElementById('userName').value.trim();
             const phone = cleanPhone(document.getElementById('loginPhone').value);
-            const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+            const rawEmail = document.getElementById('loginEmail').value.trim().toLowerCase();
 
-            if (!email.endsWith('@gmail.com')) {
-                alert('Помилка! Реєстрація дозволена тільки через Gmail пошту (@gmail.com).');
+            if (!rawEmail.endsWith('@gmail.com')) {
+                alert('Помилка! Дозволена тільки Gmail пошта (адреса повинна закінчуватись на @gmail.com)');
                 return;
             }
 
-            currentUser = { name, phone, email };
+            currentUser = { name, phone, email: rawEmail };
             localStorage.setItem('dvl_user', JSON.stringify(currentUser));
             closeLoginModal();
             renderAuth();
@@ -568,7 +573,7 @@
                     const votesCount = votesArray.length;
                     const viewsCount = p.views || 0;
                     
-                    const userKey = currentUser ? (currentUser.email || currentUser.phone) : null;
+                    const userKey = currentUser ? currentUser.email : null;
                     const hasVoted = currentUser && votesArray.includes(userKey);
                     const isOwner = currentUser && (p.authorContact === userKey || p.author === currentUser.name);
                     const isArchived = isExpired(p);
@@ -762,7 +767,7 @@
             
             if (p && !isExpired(p)) {
                 const voters = p.voters || [];
-                const userKey = currentUser.email || currentUser.phone;
+                const userKey = currentUser.email;
 
                 if (voters.includes(userKey)) {
                     petitionRef.update({
@@ -855,7 +860,7 @@
                     });
                 }
 
-                const userKey = currentUser.email || currentUser.phone;
+                const userKey = currentUser.email;
 
                 await db.collection("petitions").add({
                     title: document.getElementById('title').value.trim(),
