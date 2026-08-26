@@ -215,6 +215,11 @@
         .ranking-item { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
         .rank-num { width: 22px; height: 22px; background: #f1f5f9; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; margin-right: 10px; color: var(--text-muted); }
 
+        .stats-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+        .stats-item { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+        .stats-item span { color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+        .stats-item strong { color: var(--text-dark); font-weight: 700; }
+
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal-overlay.active { display: flex; }
         .modal { background: #fff; padding: 28px; border-radius: var(--radius); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
@@ -229,7 +234,6 @@
         .btn-submit { background: var(--primary); color: #fff; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
         .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* Footer Style */
         footer {
             background: #ffffff;
             border-top: 1px solid var(--border);
@@ -240,13 +244,8 @@
             font-size: 13px;
             line-height: 1.6;
         }
-        .footer-content {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        .footer-content p {
-            margin-bottom: 8px;
-        }
+        .footer-content { max-width: 900px; margin: 0 auto; }
+        .footer-content p { margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -298,6 +297,25 @@
         </main>
 
         <aside class="sidebar-right">
+            <!-- Віджет статистики сайту -->
+            <div class="widget">
+                <div class="widget-title"><i class="fa-solid fa-chart-line" style="color:var(--primary); margin-right:6px;"></i> Статистика платформи</div>
+                <ul class="stats-list">
+                    <li class="stats-item">
+                        <span><i class="fa-solid fa-users"></i> Заходів на сайт:</span>
+                        <strong id="siteVisitsCount">0</strong>
+                    </li>
+                    <li class="stats-item">
+                        <span><i class="fa-solid fa-check-to-slot"></i> Проголосувало:</span>
+                        <strong id="totalVotesCount">0</strong>
+                    </li>
+                    <li class="stats-item">
+                        <span><i class="fa-solid fa-eye"></i> Переглядів петицій:</span>
+                        <strong id="totalViewsCount">0</strong>
+                    </li>
+                </ul>
+            </div>
+
             <div class="widget">
                 <div class="widget-title">Найпідтримуваніші</div>
                 <ul class="ranking-list" id="rankingList"></ul>
@@ -323,16 +341,12 @@
             </div>
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="userName">Ваше Ім'я та Прізвище (ПІБ)</label>
-                    <input type="text" id="userName" placeholder="напр. Олексій Коваленко" required>
+                    <label for="userName">Ваше Прізвище та Ім'я (ПІ)</label>
+                    <input type="text" id="userName" placeholder="напр. Коваленко Олексій" required>
                 </div>
                 <div class="form-group">
                     <label for="loginPhone">Номер телефону</label>
                     <input type="text" id="loginPhone" placeholder="+380632107296" required>
-                </div>
-                <div class="form-group">
-                    <label for="loginEmail">Gmail пошта (@gmail.com)</label>
-                    <input type="email" id="loginEmail" placeholder="example@gmail.com" required>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-cancel" onclick="closeLoginModal()">Скасувати</button>
@@ -354,7 +368,7 @@
                     <input type="text" id="title" required placeholder="Заголовок петиції...">
                 </div>
                 <div class="form-group">
-                    <label for="authorName">2. ПІБ автора петиції</label>
+                    <label for="authorName">2. ПІ автора петиції</label>
                     <input type="text" id="authorName" required readonly placeholder="Ваше ім'я...">
                 </div>
                 <div class="form-group">
@@ -417,8 +431,9 @@
             return digits ? '+' + digits : phone.trim();
         }
 
+        // Авторизація без пошти (по номеру телефону)
         let currentUser = JSON.parse(localStorage.getItem('dvl_user')) || null;
-        if (currentUser && (!currentUser.email || !currentUser.phone)) {
+        if (currentUser && !currentUser.phone) {
             currentUser = null;
             localStorage.removeItem('dvl_user');
         } else if (currentUser && currentUser.phone) {
@@ -440,6 +455,25 @@
         const modalOverlay = document.getElementById('modalOverlay');
         const petitionForm = document.getElementById('petitionForm');
         const searchInput = document.getElementById('searchInput');
+
+        // Підрахунок захода на сайт за сесію
+        function trackSiteVisit() {
+            if (!sessionStorage.getItem('dvl_visited')) {
+                sessionStorage.setItem('dvl_visited', 'true');
+                db.collection("stats").doc("site_stats").set({
+                    visits: firebase.firestore.FieldValue.increment(1)
+                }, { merge: true }).catch(err => console.error("Помилка фіксації візиту:", err));
+            }
+        }
+        trackSiteVisit();
+
+        // Слухач статистики захода на сайт
+        db.collection("stats").doc("site_stats").onSnapshot((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                document.getElementById('siteVisitsCount').innerText = data.visits || 0;
+            }
+        });
 
         loginModal.addEventListener('click', (e) => { if (e.target === loginModal) closeLoginModal(); });
         modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
@@ -496,10 +530,10 @@
                 const adminBadge = isAdmin() ? ' <span style="color:#ef4444; font-weight:bold;">(Адмін)</span>' : '';
                 authContainer.innerHTML = `
                     <div class="user-profile">
-                        <img src="https://i.pravatar.cc/100?u=${encodeURIComponent(currentUser.email)}" class="avatar" alt="Avatar">
+                        <img src="https://i.pravatar.cc/100?u=${encodeURIComponent(currentUser.phone)}" class="avatar" alt="Avatar">
                         <div class="user-info">
                             ${escapeHtml(currentUser.name)}${adminBadge}
-                            <span>${escapeHtml(currentUser.email)}</span>
+                            <span>${escapeHtml(currentUser.phone)}</span>
                         </div>
                         <button class="btn-logout" onclick="logout()">Вийти</button>
                     </div>
@@ -518,14 +552,13 @@
             e.preventDefault();
             const name = document.getElementById('userName').value.trim();
             const phone = cleanPhone(document.getElementById('loginPhone').value);
-            const rawEmail = document.getElementById('loginEmail').value.trim().toLowerCase();
 
-            if (!rawEmail.endsWith('@gmail.com')) {
-                alert('Помилка! Дозволена тільки Gmail пошта (адреса повинна закінчуватись на @gmail.com)');
+            if (!phone || phone.length < 10) {
+                alert('Помилка! Введіть коректний номер телефону.');
                 return;
             }
 
-            currentUser = { name, phone, email: rawEmail };
+            currentUser = { name, phone };
             localStorage.setItem('dvl_user', JSON.stringify(currentUser));
             closeLoginModal();
             renderAuth();
@@ -620,7 +653,7 @@
                     const votesCount = votesArray.length;
                     const viewsCount = p.views || 0;
                     
-                    const userKey = currentUser ? currentUser.email : null;
+                    const userKey = currentUser ? currentUser.phone : null;
                     const hasVoted = currentUser && votesArray.includes(userKey);
                     const isOwner = currentUser && (p.authorContact === userKey || p.author === currentUser.name);
                     const isArchived = isExpired(p);
@@ -828,7 +861,7 @@
             
             if (p && !isExpired(p)) {
                 const voters = p.voters || [];
-                const userKey = currentUser.email;
+                const userKey = currentUser.phone;
 
                 if (voters.includes(userKey)) {
                     petitionRef.update({
@@ -874,9 +907,18 @@
         function updateStats() {
             const activePetitions = petitions.filter(p => !isExpired(p));
             document.getElementById('totalCount').innerText = activePetitions.length;
+            
             let sumVotes = 0;
-            activePetitions.forEach(p => sumVotes += (p.voters?.length || 0));
+            let sumViews = 0;
+            
+            petitions.forEach(p => {
+                sumVotes += (p.voters?.length || 0);
+                sumViews += (p.views || 0);
+            });
+
             document.getElementById('votesToday').innerText = sumVotes;
+            document.getElementById('totalVotesCount').innerText = sumVotes;
+            document.getElementById('totalViewsCount').innerText = sumViews;
         }
 
         document.getElementById('openModalBtn').onclick = () => {
@@ -922,7 +964,7 @@
                     });
                 }
 
-                const userKey = currentUser.email;
+                const userKey = currentUser.phone;
 
                 await db.collection("petitions").add({
                     title: document.getElementById('title').value.trim(),
