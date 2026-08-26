@@ -39,7 +39,7 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-        body { background-color: var(--bg-main); color: var(--text-dark); font-size: 14px; }
+        body { background-color: var(--bg-main); color: var(--text-dark); font-size: 14px; display: flex; flex-direction: column; min-height: 100vh; }
 
         header {
             background: rgba(255, 255, 255, 0.9);
@@ -71,7 +71,7 @@
         .user-info { font-weight: 600; font-size: 13px; }
         .user-info span { display: block; font-weight: 400; color: var(--text-muted); font-size: 11px; }
 
-        .layout { display: grid; grid-template-columns: 240px 1fr 300px; gap: 24px; padding: 24px 40px; max-width: 1600px; margin: 0 auto; }
+        .layout { display: grid; grid-template-columns: 240px 1fr 300px; gap: 24px; padding: 24px 40px; max-width: 1600px; margin: 0 auto; flex: 1; width: 100%; }
         .sidebar-left { display: flex; flex-direction: column; gap: 20px; }
         .btn-create { background: var(--primary); color: #fff; border: none; padding: 14px; border-radius: var(--radius); font-weight: 600; width: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
 
@@ -151,6 +151,9 @@
         .card-author { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
         .card-text { font-size: 14px; color: #334155; line-height: 1.6; margin-bottom: 12px; }
         
+        .extra-section { background: rgba(241, 245, 249, 0.6); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 10px; border-left: 3px solid var(--primary); }
+        .extra-section strong { color: var(--text-dark); display: block; font-size: 11px; text-transform: uppercase; margin-bottom: 3px; }
+
         .btn-read-more {
             background: none;
             border: none;
@@ -214,17 +217,36 @@
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal-overlay.active { display: flex; }
-        .modal { background: #fff; padding: 28px; border-radius: var(--radius); width: 100%; max-width: 520px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+        .modal { background: #fff; padding: 28px; border-radius: var(--radius); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); }
         .form-group { margin-bottom: 16px; }
         .form-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 12px; }
         .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
-        .form-group textarea { height: 100px; resize: vertical; }
+        .form-group textarea { height: 80px; resize: vertical; }
         .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
         .btn-cancel { background: #f1f5f9; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--text-muted); }
         .btn-submit { background: var(--primary); color: #fff; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
         .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Footer Style */
+        footer {
+            background: #ffffff;
+            border-top: 1px solid var(--border);
+            padding: 24px 40px;
+            margin-top: 40px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .footer-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .footer-content p {
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
@@ -252,9 +274,12 @@
 
             <div class="menu-title">ПЕТИЦІЇ ПО ТЕМАМ</div>
             <ul class="nav-menu" id="catMenu">
-                <li><a onclick="setFilter('category', 'Продажі', this)"><i class="fa-solid fa-tag"></i> Продажі</a></li>
                 <li><a onclick="setFilter('category', 'Технічні', this)"><i class="fa-solid fa-tag"></i> Технічні</a></li>
+                <li><a onclick="setFilter('category', 'Продажі', this)"><i class="fa-solid fa-tag"></i> Продажі</a></li>
                 <li><a onclick="setFilter('category', 'Обслуговування', this)"><i class="fa-solid fa-tag"></i> Обслуговування</a></li>
+                <li><a onclick="setFilter('category', 'Маркетинг', this)"><i class="fa-solid fa-tag"></i> Маркетинг</a></li>
+                <li><a onclick="setFilter('category', 'Офіс', this)"><i class="fa-solid fa-tag"></i> Офіс</a></li>
+                <li><a onclick="setFilter('category', 'ЦПО', this)"><i class="fa-solid fa-tag"></i> ЦПО</a></li>
                 <li><a onclick="setFilter('category', 'Інше', this)"><i class="fa-solid fa-tag"></i> Інше</a></li>
             </ul>
         </aside>
@@ -280,6 +305,15 @@
         </aside>
     </div>
 
+    <footer>
+        <div class="footer-content">
+            <p>Сайт створено командою проєкту «Ідея Лаб — Амстердам» для спільної роботи, обговорення та реалізації ідей.</p>
+            <p>На даному етапі розділ «Петиції» працює у тестовому режимі. Запрошуємо співробітників долучитися до тестування платформи: створювати власні петиції, обговорювати запропоновані ініціативи та брати участь у голосуванні.</p>
+            <p>Ваші пропозиції, коментарі та активність допоможуть нам перевірити роботу функціоналу, виявити можливі недоліки та зробити платформу зручною для подальшого використання.</p>
+            <p style="font-weight: 600; color: var(--primary);">Долучайтеся до тестування та допомагайте створювати зміни разом!</p>
+        </div>
+    </footer>
+
     <!-- Modals -->
     <div class="modal-overlay" id="loginModal">
         <div class="modal">
@@ -289,7 +323,7 @@
             </div>
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="userName">Ваше Ім'я та Прізвище</label>
+                    <label for="userName">Ваше Ім'я та Прізвище (ПІБ)</label>
                     <input type="text" id="userName" placeholder="напр. Олексій Коваленко" required>
                 </div>
                 <div class="form-group">
@@ -316,24 +350,39 @@
             </div>
             <form id="petitionForm">
                 <div class="form-group">
-                    <label for="title">Назва петиції</label>
+                    <label for="title">1. Назва проєкту</label>
                     <input type="text" id="title" required placeholder="Заголовок петиції...">
                 </div>
                 <div class="form-group">
-                    <label for="category">Тема петиції</label>
-                    <select id="category">
-                        <option value="Продажі">Продажі</option>
+                    <label for="authorName">2. ПІБ автора петиції</label>
+                    <input type="text" id="authorName" required readonly placeholder="Ваше ім'я...">
+                </div>
+                <div class="form-group">
+                    <label for="category">3. Група петиції</label>
+                    <select id="category" required>
                         <option value="Технічні">Технічні</option>
+                        <option value="Продажі">Продажі</option>
                         <option value="Обслуговування">Обслуговування</option>
+                        <option value="Маркетинг">Маркетинг</option>
+                        <option value="Офіс">Офіс</option>
+                        <option value="ЦПО">ЦПО</option>
                         <option value="Інше">Інше</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="description">Опис ініціативи</label>
+                    <label for="description">4. Опис петиції</label>
                     <textarea id="description" required placeholder="Детально опишіть вашу пропозицію..."></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="attachments">Прикріпити фото, файли або презентацію (необов'язково)</label>
+                    <label for="expectedResult">5. Очікуваний результат</label>
+                    <textarea id="expectedResult" required placeholder="Опишіть конкретний очікуваний результат від впровадження ідеї..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="requiredResources">6. Необхідні ресурси</label>
+                    <textarea id="requiredResources" required placeholder="Які ресурси (бюджет, команда, час тощо) потрібні для впровадження ідеї..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="attachments">7. Додати файли, фото або презентацію (необов'язково)</label>
                     <input type="file" id="attachments" multiple accept="image/*,.pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx">
                 </div>
                 <div class="form-actions">
@@ -368,10 +417,8 @@
             return digits ? '+' + digits : phone.trim();
         }
 
-        // Завантаження та перевірка цілісності користувача з пам'яті
         let currentUser = JSON.parse(localStorage.getItem('dvl_user')) || null;
         if (currentUser && (!currentUser.email || !currentUser.phone)) {
-            // Якщо збережений застарілий профіль без Gmail - скидаємо його
             currentUser = null;
             localStorage.removeItem('dvl_user');
         } else if (currentUser && currentUser.phone) {
@@ -670,7 +717,7 @@
                                     ` : ''}
                                 </div>
                                 <div class="card-author">
-                                    <strong>${escapeHtml(p.author)}</strong> • Тема: <strong>${escapeHtml(p.category)}</strong> • ${p.date}
+                                    <strong>${escapeHtml(p.author)}</strong> • Група: <strong>${escapeHtml(p.category)}</strong> • ${p.date}
                                 </div>
                                 
                                 <div class="card-text">
@@ -685,6 +732,20 @@
                                         </span>
                                     ` : escapeHtml(fullText)}
                                 </div>
+
+                                ${p.expectedResult ? `
+                                    <div class="extra-section">
+                                        <strong>Очікуваний результат:</strong>
+                                        ${escapeHtml(p.expectedResult)}
+                                    </div>
+                                ` : ''}
+
+                                ${p.requiredResources ? `
+                                    <div class="extra-section">
+                                        <strong>Необхідні ресурси:</strong>
+                                        ${escapeHtml(p.requiredResources)}
+                                    </div>
+                                ` : ''}
 
                                 ${attachmentsHTML}
                                 
@@ -824,6 +885,7 @@
                 openLoginModal();
                 return;
             }
+            document.getElementById('authorName').value = currentUser.name;
             modalOverlay.classList.add('active');
         };
 
@@ -866,7 +928,9 @@
                     title: document.getElementById('title').value.trim(),
                     category: document.getElementById('category').value,
                     text: document.getElementById('description').value.trim(),
-                    author: currentUser.name,
+                    expectedResult: document.getElementById('expectedResult').value.trim(),
+                    requiredResources: document.getElementById('requiredResources').value.trim(),
+                    author: document.getElementById('authorName').value.trim() || currentUser.name,
                     authorContact: userKey,
                     date: new Date().toLocaleDateString('uk-UA'),
                     voters: [userKey],
