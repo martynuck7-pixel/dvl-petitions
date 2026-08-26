@@ -939,33 +939,36 @@
             petitionForm.reset();
         }
 
+        // Оновлений та оптимізований обробник створення петицій і завантаження файлів
         petitionForm.onsubmit = async function(e) {
             e.preventDefault();
             
             const submitBtn = document.getElementById('submitPetitionBtn');
             submitBtn.disabled = true;
-            submitBtn.innerText = 'Завантаження...';
+            submitBtn.innerText = 'Завантаження файлів...';
 
             const fileInput = document.getElementById('attachments');
-            const files = fileInput.files;
-            const uploadedFiles = [];
+            const files = Array.from(fileInput.files);
 
             try {
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    const storageRef = storage.ref(`petitions_files/${Date.now()}_${file.name}`);
+                // Паралельна обробка та завантаження файлів у Storage
+                const uploadedFiles = await Promise.all(files.map(async (file) => {
+                    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                    const storageRef = storage.ref(`petitions_files/${Date.now()}_${safeName}`);
+                    
                     const snapshot = await storageRef.put(file);
                     const downloadURL = await snapshot.ref.getDownloadURL();
-                    
-                    uploadedFiles.push({
+
+                    return {
                         name: file.name,
                         url: downloadURL,
                         type: file.type.startsWith('image/') ? 'image' : 'file'
-                    });
-                }
+                    };
+                }));
 
                 const userKey = currentUser.phone;
 
+                // Збереження даних петиції в Firestore
                 await db.collection("petitions").add({
                     title: document.getElementById('title').value.trim(),
                     category: document.getElementById('category').value,
@@ -984,8 +987,8 @@
 
                 closeModal();
             } catch (err) {
-                console.error("Помилка зберігання:", err);
-                alert("Помилка при збереженні. Перевірте підключення та дозволи Storage.");
+                console.error("Помилка при зберіганні:", err);
+                alert(`Помилка завантаження: ${err.message || 'Перевірте правила доступу в Storage'}`);
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerText = 'Опублікувати';
